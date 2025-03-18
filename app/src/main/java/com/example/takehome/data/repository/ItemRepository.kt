@@ -21,12 +21,8 @@ class ItemRepository @Inject constructor(
         // Sort by listId then by name
         val sortedItems = filteredItems.sortedWith(
             compareBy<ItemModel> { it.listId }
-                .thenBy {
-                    // Extract numeric part from name for natural sorting
-                    it.name?.replace("Item ", "")?.toIntOrNull() ?: Int.MAX_VALUE
-                }
+                .thenBy { it.name ?: "" }
         )
-
         emit(sortedItems)
     }
 }
