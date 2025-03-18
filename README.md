@@ -14,7 +14,6 @@ This Android application fetches and displays a list of items from the Fetch Rew
 
 ## Architecture
 
-
 This application follows the MVVM (Model-View-ViewModel) architecture pattern with Clean Architecture principles:
 
 - **UI Layer**: Jetpack Compose UI components
