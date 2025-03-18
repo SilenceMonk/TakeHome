@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.fetchrewards"  // Changed namespace
+    namespace = "com.example.fetchrewards"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.fetchrewards"  // Changed applicationId
+        applicationId = "com.example.fetchrewards"
         minSdk = 33
         targetSdk = 34
         versionCode = 1
@@ -65,9 +65,6 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
-
-    // animation
-    implementation(libs.accompanist.swiperefresh)
 
     // test dependencies
     testImplementation(libs.junit)

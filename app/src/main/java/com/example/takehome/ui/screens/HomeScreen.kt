@@ -27,16 +27,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -53,24 +56,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.takehome.data.model.ItemModel
 import com.example.takehome.data.viewmodel.ItemViewModel
 
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: ItemViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // Add this line to collect the refreshing state
+    // Collect the refreshing state
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     var isSearchExpanded by remember { mutableStateOf(false) }
 
-    // The rest of the HomeScreen composable stays the same until the Success case
     Scaffold(
         topBar = {
-            // TopAppBar code stays the same
             TopAppBar(
                 title = {
                     AnimatedVisibility(
@@ -118,7 +116,7 @@ fun HomeScreen(
                         } else {
                             state.groupedItems.mapValues { (_, items) ->
                                 items.filter { item ->
-                                    item.name?.contains(searchQuery, ignoreCase = true) ?: false
+                                    item.name?.contains(searchQuery, ignoreCase = true) == true
                                 }
                             }.filter { it.value.isNotEmpty() }
                         }
@@ -204,6 +202,7 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemsList(
     groupedItems: Map<Int, List<ItemModel>>,
@@ -213,11 +212,12 @@ fun ItemsList(
     // State to track which groups are expanded (all collapsed by default)
     val expandedState = remember { mutableStateMapOf<Int, Boolean>() }
 
-    // Setup swipe refresh state
-    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
+    // Setup pull-to-refresh state
+    val pullRefreshState = rememberPullToRefreshState()
 
-    SwipeRefresh(
-        state = swipeRefreshState,
+    PullToRefreshBox(
+        state = pullRefreshState,
+        isRefreshing = isRefreshing,
         onRefresh = onRefresh
     ) {
         LazyColumn(
@@ -294,7 +294,7 @@ fun GroupHeader(
             modifier = Modifier.rotate(arrowRotation)
         )
     }
-    Divider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
 }
 
 @Composable
@@ -382,9 +382,14 @@ fun ExpandableSearchBar(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth().padding(start = 4.dp),
-                colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             )
         }
