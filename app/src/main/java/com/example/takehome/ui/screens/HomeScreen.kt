@@ -2,6 +2,10 @@ package com.example.takehome.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +20,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,7 +30,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -32,7 +40,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -50,35 +60,78 @@ fun HomeScreen(
     viewModel: ItemViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Fetch Rewards") },
+                title = {
+                    AnimatedVisibility(
+                        visible = !isSearchExpanded,
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
+                        Text("Fetch Rewards")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    // Expandable Search Bar
+                    ExpandableSearchBar(
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it },
+                        isExpanded = isSearchExpanded,
+                        onExpandedChange = { isSearchExpanded = it }
+                    )
+                }
             )
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (val state = uiState) {
-                is ItemViewModel.UiState.Loading -> {
-                    LoadingScreen()
-                }
-                is ItemViewModel.UiState.Empty -> {
-                    EmptyScreen(onRetry = { viewModel.retry() })
-                }
-                is ItemViewModel.UiState.Success -> {
-                    ItemsList(groupedItems = state.groupedItems)
-                }
-                is ItemViewModel.UiState.Error -> {
-                    ErrorScreen(message = state.message, onRetry = { viewModel.retry() })
+            // Content based on state
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = uiState) {
+                    is ItemViewModel.UiState.Loading -> {
+                        LoadingScreen()
+                    }
+                    is ItemViewModel.UiState.Empty -> {
+                        EmptyScreen(onRetry = { viewModel.retry() })
+                    }
+                    is ItemViewModel.UiState.Success -> {
+                        // Filter items based on search query
+                        val filteredGroups = if (searchQuery.isBlank()) {
+                            state.groupedItems
+                        } else {
+                            state.groupedItems.mapValues { (_, items) ->
+                                items.filter { item ->
+                                    item.name?.contains(searchQuery, ignoreCase = true) ?: false
+                                }
+                            }.filter { it.value.isNotEmpty() }
+                        }
+
+                        if (filteredGroups.isEmpty() && searchQuery.isNotEmpty()) {
+                            // Show no results message when search has no matches
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No matching items found")
+                            }
+                        } else {
+                            ItemsList(groupedItems = filteredGroups)
+                        }
+                    }
+                    is ItemViewModel.UiState.Error -> {
+                        ErrorScreen(message = state.message, onRetry = { viewModel.retry() })
+                    }
                 }
             }
         }
@@ -241,6 +294,74 @@ fun ItemCard(item: ItemModel) {
                 text = "ID: ${item.id}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExpandableSearchBar(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    isExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        // Search icon (collapsed state)
+        if (!isExpanded) {
+            IconButton(onClick = { onExpandedChange(true) }) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+
+        // Expanded search field
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = fadeIn() + expandHorizontally(expandFrom = Alignment.End),
+            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.End)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Search items...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null
+                    )
+                },
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            if (searchQuery.isNotEmpty()) {
+                                onSearchQueryChange("")
+                            } else {
+                                onExpandedChange(false)
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = if (searchQuery.isNotEmpty()) "Clear search" else "Close search"
+                        )
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth().padding(start = 4.dp),
+                colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                )
             )
         }
     }
