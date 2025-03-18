@@ -53,6 +53,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.takehome.data.model.ItemModel
 import com.example.takehome.data.viewmodel.ItemViewModel
 
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +62,15 @@ fun HomeScreen(
     viewModel: ItemViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Add this line to collect the refreshing state
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     var isSearchExpanded by remember { mutableStateOf(false) }
 
+    // The rest of the HomeScreen composable stays the same until the Success case
     Scaffold(
         topBar = {
+            // TopAppBar code stays the same
             TopAppBar(
                 title = {
                     AnimatedVisibility(
@@ -126,7 +132,12 @@ fun HomeScreen(
                                 Text("No matching items found")
                             }
                         } else {
-                            ItemsList(groupedItems = filteredGroups)
+                            // Pass isRefreshing and onRefresh to ItemsList
+                            ItemsList(
+                                groupedItems = filteredGroups,
+                                isRefreshing = isRefreshing,
+                                onRefresh = { viewModel.retry() }
+                            )
                         }
                     }
                     is ItemViewModel.UiState.Error -> {
@@ -194,37 +205,50 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-fun ItemsList(groupedItems: Map<Int, List<ItemModel>>) {
+fun ItemsList(
+    groupedItems: Map<Int, List<ItemModel>>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
+) {
     // State to track which groups are expanded (all collapsed by default)
     val expandedState = remember { mutableStateMapOf<Int, Boolean>() }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    // Setup swipe refresh state
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isRefreshing)
+
+    SwipeRefresh(
+        state = swipeRefreshState,
+        onRefresh = onRefresh
     ) {
-        // Get sorted list of listIds
-        val sortedListIds = groupedItems.keys.sorted()
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Get sorted list of listIds
+            val sortedListIds = groupedItems.keys.sorted()
 
-        for (listId in sortedListIds) {
-            item {
-                GroupHeader(
-                    listId = listId,
-                    isExpanded = expandedState.getOrDefault(listId, false),
-                    itemCount = groupedItems[listId]?.size ?: 0,
-                    onToggleExpand = {
-                        expandedState[listId] = !(expandedState[listId] ?: false)
-                    }
-                )
-            }
-
-            // Only show items if the group is expanded
-            if (expandedState.getOrDefault(listId, false)) {
-                items(groupedItems[listId] ?: emptyList()) { item ->
-                    ItemCard(item = item)
+            for (listId in sortedListIds) {
+                item {
+                    GroupHeader(
+                        listId = listId,
+                        isExpanded = expandedState.getOrDefault(listId, false),
+                        itemCount = groupedItems[listId]?.size ?: 0,
+                        onToggleExpand = {
+                            expandedState[listId] = expandedState[listId] != true
+                        }
+                    )
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
+                // Only show items if the group is expanded
+                if (expandedState.getOrDefault(listId, false)) {
+                    items(groupedItems[listId] ?: emptyList()) { item ->
+                        ItemCard(item = item)
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
         }

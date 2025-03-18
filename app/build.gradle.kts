@@ -66,7 +66,10 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 
-    // Keep existing test dependencies
+    // animation
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.30.1")
+
+    // test dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

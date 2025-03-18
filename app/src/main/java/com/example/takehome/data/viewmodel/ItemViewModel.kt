@@ -21,16 +21,26 @@ class ItemViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState
 
+    // tracking refresh operations
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
-        loadItems()
+        loadItems(isRefresh = false)
     }
 
-    private fun loadItems() {
+    private fun loadItems(isRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            if (isRefresh) {
+                _isRefreshing.value = true
+            } else {
+                _uiState.value = UiState.Loading
+            }
+
             repository.getItems()
                 .catch { e ->
                     _uiState.value = UiState.Error(e.message ?: "Unknown error occurred")
+                    _isRefreshing.value = false
                 }
                 .collect { items ->
                     if (items.isEmpty()) {
@@ -40,12 +50,13 @@ class ItemViewModel @Inject constructor(
                         val groupedItems = items.groupBy { it.listId }
                         _uiState.value = UiState.Success(groupedItems)
                     }
+                    _isRefreshing.value = false
                 }
         }
     }
 
     fun retry() {
-        loadItems()
+        loadItems(isRefresh = true)
     }
 
     sealed class UiState {
