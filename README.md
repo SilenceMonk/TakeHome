@@ -4,9 +4,9 @@ A native Android application that retrieves, sorts, and displays data from Fetch
 
 ## Demo
 
-<div style="display: flex; justify-content: center;">
-  <video src="demo.mp4" controls width="360" height="640"></video>
-</div>
+![App Demo](demo.gif)
+
+
 
 ## Features
 
