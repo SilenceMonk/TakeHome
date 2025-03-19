@@ -3,7 +3,7 @@
 A native Android application that retrieves, sorts, and displays data from Fetch Rewards API endpoint according to specified requirements.
 
 ## Demo
-[App Demo](demo.gif)
+[demo.mp4](demo.mp4)
 
 ![App Demo](demo.gif)
 
