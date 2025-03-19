@@ -1,113 +1,95 @@
-# Fetch Rewards Android Coding Challenge
+# Fetch Rewards Takehome App
 
-This Android application fetches and displays a list of items from the Fetch Rewards API, meeting specific sorting and filtering requirements.
+A native Android application that retrieves, sorts, and displays data from Fetch Rewards API endpoint according to specified requirements.
 
 ## Features
 
-- Retrieves data from the Fetch Rewards API endpoint
-- Filters out items with null or blank names
-- Groups items by their "listId"
-- Sorts items first by "listId" then by "name"
-- Displays the organized data in an easy-to-read list
-- Handles loading states, errors, and empty results with appropriate UI feedback
-- Provides retry functionality for error recovery
+- **Data Retrieval**: Fetches JSON data from the provided endpoint
+- **Data Processing**: Filters and sorts data according to requirements
+- **Grouping**: Groups items by listId with expandable/collapsible sections
+- **Search(*)**: Allows filtering items by name
+- **Pull-to-Refresh(*)**: Updates data with a standard pull gesture
+- **Error Handling**: Provides clear feedback for loading, empty states, and errors
+
+    (*: added for enhanced user experience)
+
+## Requirements Implementation
+
+The application fulfills all the requirements specified in the exercise:
+
+1. **Retrieve data from the provided endpoint**
+   - Uses Retrofit to fetch data from `https://fetch-hiring.s3.amazonaws.com/hiring.json`
+   - Implemented in `ApiService.kt` and configured in `NetworkModule.kt`
+
+2. **Filter out items with blank or null names**
+   - Implemented in `ItemRepository.kt` using:
+   ```kotlin
+   val filteredItems = response.filter { !it.name.isNullOrBlank() }
+   ```
+
+3. **Sort by "listId" then by "name"**
+   - Implemented in `ItemRepository.kt` using:
+   ```kotlin
+   val sortedItems = filteredItems.sortedWith(
+       compareBy<ItemModel> { it.listId }
+           .thenBy { it.name ?: "" }
+   )
+   ```
+
+4. **Group items by "listId"**
+   - Implemented in `ItemViewModel.kt`:
+   ```kotlin
+   val groupedItems = items.groupBy { it.listId }
+   ```
+   - UI representation in `HomeScreen.kt` shows collapsible group headers
+
+5. **Display in an easy-to-read list**
+   - Uses Material 3 design components
+   - Implemented expandable sections with animation
+   - Clean card-based design for individual items
+   - Added search functionality for improved usability
 
 ## Architecture
 
-This application follows the MVVM (Model-View-ViewModel) architecture pattern with Clean Architecture principles:
+The application follows MVVM (Model-View-ViewModel) architecture with a clean separation of concerns:
 
-- **UI Layer**: Jetpack Compose UI components
-- **Presentation Layer**: ViewModel manages UI state
-- **Domain Layer**: Repository handles business logic
-- **Data Layer**: Remote data source via Retrofit
+- **Data Layer**: Models, API service, and repository
+- **ViewModel**: Manages UI state and business logic
+- **UI Layer**: Composable functions for rendering the interface
 
 ### Key Components
 
-- **ItemViewModel**: Manages UI state and business logic
-- **ItemRepository**: Handles data operations and transformations
-- **ApiService**: Defines network endpoints
-- **NetworkModule**: Provides network dependencies via Hilt
-- **Composables**: Modular UI components built with Jetpack Compose
+- **Jetpack Compose**: For modern, declarative UI
+- **Hilt**: For dependency injection
+- **Coroutines & Flow**: For asynchronous operations
+- **Material 3**: For consistent design language
+- **ViewModel**: For managing UI state and surviving configuration changes
+- **Repository Pattern**: For abstracting data sources
 
-## Technologies Used
+## Testing
 
-- **Kotlin** - Primary programming language
-- **Jetpack Compose** - Modern UI toolkit for native UI
-- **Coroutines & Flow** - Asynchronous programming
-- **Hilt 2.48** - Dependency injection
-- **Retrofit 2.9.0** - Type-safe HTTP client
-- **OkHttp 4.11.0** - HTTP client for logging and intercepting requests
-- **Material 3** - Design system for modern Android UI
-- **ViewModel & StateFlow** - State management for UI
-- **Lifecycle-Runtime-Compose 2.6.2** - Lifecycle-aware Compose utilities
+The project includes comprehensive tests:
 
-## Project Structure
+- **Unit Tests**: For repository and ViewModel logic
+- **Integration Tests**: For API and data processing
+- **Mock Testing**: Using Mockito for dependencies
 
-```
-com.example.fetchrewards/
-├── FetchRewardsApplication.kt  # Application class with Hilt
-├── MainActivity.kt             # Entry point activity
-├── data/
-│   ├── model/
-│   │   └── ItemModel.kt        # Data model for items
-│   ├── network/
-│   │   ├── ApiService.kt       # Retrofit service interface
-│   │   └── RetrofitClient.kt   # Network configuration
-│   ├── repository/
-│   │   └── ItemRepository.kt   # Data operations and business logic
-│   └── viewmodel/
-│       └── ItemViewModel.kt    # UI state management
-└── ui/
-    ├── screens/
-    │   └── HomeScreen.kt       # Main screen with list display
-    └── theme/                  # Material theming components
-```
+Tests verify that:
+- Items with null or blank names are filtered out
+- Sorting is correctly applied (by listId then by name)
+- Items are properly grouped by listId
+- Error handling works as expected
 
-## Setup Instructions
-
-### Prerequisites
-
-- Android Studio Arctic Fox (2020.3.1) or newer
-- Kotlin 1.6.0 or newer
-- Android SDK 31 (Android 12) or newer
-- JDK 11
-
-### Building the App
+## Running the Project
 
 1. Clone the repository
-2. Open the project in Android Studio
-3. Sync Gradle files
-4. Run the app on an emulator or physical device (minimum API 33)
+2. Open in Android Studio (latest version)
+3. Build and run on an emulator or physical device running the current Android release
 
-## Design Decisions & Trade-offs
+## Dependencies
 
-### Data Processing Approach
-
-The app processes API data in the following order:
-1. Fetch raw data from the API
-2. Filter out null/blank named items
-3. Sort by listId then by name (using natural number sorting for names)
-4. Group by listId for display
-
-### UI Design
-
-- Used Material 3 design components for a modern look and feel
-- Implemented cards for each item for visual separation
-- Group headers clearly indicate the listId grouping
-- Loading, error, and empty states provide feedback to the user
-
-### Performance Considerations
-
-- Data processing occurs in the repository layer, offloaded from the UI thread
-- StateFlow is used for efficient UI updates
-- Network timeouts are configured for reliability
-
-## Future Improvements
-
-- Add unit tests for Repository and ViewModel layers
-- Add UI tests for Compose components
-- Implement local caching for offline support
-- Add pull-to-refresh functionality
-- Enhance error handling with more specific error messages
-- Implement search functionality
-- Add animations for smoother UI transitions
+- Android Jetpack (Compose, ViewModel, etc.)
+- Retrofit for network calls
+- Hilt for dependency injection
+- Kotlin Coroutines and Flow
+- Material 3 Components
