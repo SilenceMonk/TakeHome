@@ -2,6 +2,12 @@
 
 A native Android application that retrieves, sorts, and displays data from Fetch Rewards API endpoint according to specified requirements.
 
+## Demo
+
+<div style="display: flex; justify-content: center;">
+  <video src="demo.mp4" controls width="360" height="640"></video>
+</div>
+
 ## Features
 
 - **Data Retrieval**: Fetches JSON data from the provided endpoint
